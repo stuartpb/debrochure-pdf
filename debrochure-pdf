@@ -1,0 +1,25 @@
+#! /usr/bin/env bash
+
+newpagename () {
+  format='%04d.pdf'
+  mod=$(( ($1 - 1) % 4 ))
+  case $mod in
+    0) printf "$format" $(( pagecount - $1 / 2 )) ;;
+    1) printf "$format" $(( $1 / 2 )) ;;
+    2) printf "$format" $(( ($1 + 1) / 2 )) ;;
+    3) printf "$format" $(( pagecount - $1 / 2 + 1 )) ;;
+  esac
+}
+
+pagedir=$(mktemp -d)
+mutool poster -x 2 "$1" "$pagedir/pages.pdf"
+cd "$pagedir"
+pdftk pages.pdf burst output '%d.pdf'
+rm pages.pdf
+pagecount=$(find -name '*.pdf' -printf '.' | wc -c)
+for ((p=1; p <= pagecount; p++)) do
+  mv "$p.pdf" "$(newpagename $p)"
+done
+cd -
+pdftk "$pagedir"/*.pdf cat output "${1%.pdf}-sp.pdf"
+rm -r "$pagedir"
